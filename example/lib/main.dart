@@ -62,6 +62,11 @@ class MyTaskHandler extends TaskHandler {
     }
   }
 
+  @override
+  void onNotificationReplied(String id, String? reply) {
+    print('onNotificationReplied >> $id, $reply');
+  }
+
   // Called when the notification button is pressed.
   @override
   void onNotificationButtonPressed(String id) {
@@ -171,7 +176,7 @@ class _ExamplePageState extends State<ExamplePage> {
         notificationText: 'Tap to return to the app',
         notificationIcon: null,
         notificationButtons: [
-          const NotificationButton(id: 'btn_hello', text: 'hello'),
+          const NotificationButton(id: 'btn_hello', text: 'hello', isReply: true),
         ],
         notificationInitialRoute: '/second',
         callback: startCallback,

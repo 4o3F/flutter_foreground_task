@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:ui';
 
 import 'package:flutter_foreground_task/utils/color_extension.dart';
@@ -9,6 +10,7 @@ class NotificationButton {
     required this.id,
     required this.text,
     this.textColor,
+    this.isReply,
   })  : assert(id.length > 0),
         assert(text.length > 0);
 
@@ -21,12 +23,21 @@ class NotificationButton {
   /// The button text color. (only work Android)
   final Color? textColor;
 
+  final bool? isReply;
+
   /// Returns the data fields of [NotificationButton] in JSON format.
   Map<String, dynamic> toJson() {
+    bool isReplyBool;
+    if(isReply == null) {
+      isReplyBool = false;
+    } else {
+      isReplyBool = isReply!;
+    }
     return {
       'id': id,
       'text': text,
       'textColorRgb': textColor?.toRgbString,
+      'isReply': isReplyBool
     };
   }
 

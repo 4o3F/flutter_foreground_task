@@ -156,6 +156,11 @@ class MethodChannelFlutterForegroundTask extends FlutterForegroundTaskPlatform {
       case 'onNotificationPressed':
         handler.onNotificationPressed();
         break;
+      case 'onNotificationReplied':
+        final String data = call.arguments.toString();
+        List<String> result = data.split("#");
+        handler.onNotificationReplied(result.first, result.last);
+        break;
     }
   }
 

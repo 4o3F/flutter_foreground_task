@@ -6,12 +6,14 @@ import java.util.Objects
 data class NotificationButton(
     val id: String,
     val text: String,
-    val textColorRgb: String?
+    val textColorRgb: String?,
+    val isReply: Boolean,
 ) {
     companion object {
         private const val ID_KEY = "id"
         private const val TEXT_KEY = "text"
         private const val TEXT_COLOR_RGB_KEY = "textColorRgb"
+        private const val IS_REPLY_KEY = "isReply"
 
         fun fromJSONObject(jsonObj: JSONObject): NotificationButton {
             val id: String = if (jsonObj.isNull(ID_KEY)) {
@@ -32,7 +34,13 @@ data class NotificationButton(
                 jsonObj.getString(TEXT_COLOR_RGB_KEY)
             }
 
-            return NotificationButton(id = id, text = text, textColorRgb = textColorRgb)
+            val isReply: Boolean = if (jsonObj.isNull(IS_REPLY_KEY)) {
+                false
+            } else {
+                jsonObj.getBoolean(IS_REPLY_KEY)
+            }
+
+            return NotificationButton(id = id, text = text, textColorRgb = textColorRgb, isReply = isReply)
         }
     }
 

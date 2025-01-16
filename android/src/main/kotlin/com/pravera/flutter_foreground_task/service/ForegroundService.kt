@@ -38,6 +38,7 @@ class ForegroundService : Service() {
         private const val ACTION_NOTIFICATION_PRESSED = "onNotificationPressed"
         private const val ACTION_NOTIFICATION_DISMISSED = "onNotificationDismissed"
         private const val ACTION_NOTIFICATION_BUTTON_PRESSED = "onNotificationButtonPressed"
+        private const val ACTION_NOTIFICATION_REPLIED = "onNotificationReplied"
         private const val ACTION_RECEIVE_DATA = "onReceiveData"
         private const val INTENT_DATA_NAME = "intentData"
 
@@ -111,7 +112,10 @@ class ForegroundService : Service() {
                 }
 
                 val action = intent.action ?: return
-                val data = intent.getStringExtra(INTENT_DATA_NAME)
+                var data = intent.getStringExtra(INTENT_DATA_NAME)
+                if (intent?.action == ACTION_NOTIFICATION_REPLIED) {
+                    data += "#" + getMessageText(intent)?.toString()
+                }
                 task?.invokeMethod(action, data)
             } catch (e: Exception) {
                 Log.e(TAG, e.message, e)
@@ -233,6 +237,7 @@ class ForegroundService : Service() {
             addAction(ACTION_NOTIFICATION_BUTTON_PRESSED)
             addAction(ACTION_NOTIFICATION_PRESSED)
             addAction(ACTION_NOTIFICATION_DISMISSED)
+            addAction(ACTION_NOTIFICATION_REPLIED)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED)
@@ -352,6 +357,10 @@ class ForegroundService : Service() {
 
             val actions = buildNotificationActions(currButtons, needsRebuildButtons)
             for (action in actions) {
+                builder.addAction(action)
+            }
+
+            for (action in buildButtonReplies()) {
                 builder.addAction(action)
             }
 
@@ -542,6 +551,9 @@ class ForegroundService : Service() {
     ): List<Notification.Action> {
         val actions = mutableListOf<Notification.Action>()
         for (i in buttons.indices) {
+            if (buttons[i].isReply) {
+                continue
+            }
             val intent = Intent(ACTION_NOTIFICATION_BUTTON_PRESSED).apply {
                 setPackage(packageName)
                 putExtra(INTENT_DATA_NAME, buttons[i].id)
@@ -571,6 +583,9 @@ class ForegroundService : Service() {
     ): List<NotificationCompat.Action> {
         val actions = mutableListOf<NotificationCompat.Action>()
         for (i in buttons.indices) {
+            if (buttons[i].isReply) {
+                continue
+            }
             val intent = Intent(ACTION_NOTIFICATION_BUTTON_PRESSED).apply {
                 setPackage(packageName)
                 putExtra(INTENT_DATA_NAME, buttons[i].id)
@@ -589,4 +604,44 @@ class ForegroundService : Service() {
 
         return actions
     }
+
+    private fun buildButtonReplies(): List<Notification.Action> {
+        val actions = mutableListOf<Notification.Action>()
+        val buttons = notificationContent.buttons
+        for (i in buttons.indices) {
+            if (!buttons[i].isReply) {
+                continue
+            }
+            var replyLabel: String = buttons[i].text;
+            var remoteInput: RemoteInput = RemoteInput.Builder("reply").run {
+                setLabel(replyLabel)
+                build()
+            }
+            val bIntent = Intent(ACTION_NOTIFICATION_REPLIED).apply {
+                setPackage(packageName)
+                putExtra(INTENT_DATA_NAME, buttons[i].id)
+            }
+            val bPendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.getBroadcast(this, i + 1, bIntent, PendingIntent.FLAG_MUTABLE)
+            } else {
+                PendingIntent.getBroadcast(this, i + 1, bIntent, 0)
+            }
+            val bTextColor = buttons[i].textColorRgb?.let(::getRgbColor)
+            val bText = getTextSpan(buttons[i].text, bTextColor)
+            val bAction = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Notification.Action.Builder(null, bText, bPendingIntent)
+                    .addRemoteInput(remoteInput)
+                    .build()
+            } else {
+                Notification.Action.Builder(0, bText, bPendingIntent).build()
+            }
+            actions.add(bAction)
+        }
+        return actions
+    }
+
+    private fun getMessageText(intent: Intent): CharSequence? {
+        return RemoteInput.getResultsFromIntent(intent)?.getCharSequence("reply")
+    }
+
 }

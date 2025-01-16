@@ -24,6 +24,9 @@ abstract class TaskHandler {
   /// Called when the notification itself is pressed.
   void onNotificationPressed() {}
 
+  /// Called when notification reply button clicked
+  void onNotificationReplied(String id, String reply) {}
+
   /// Called when the notification itself is dismissed.
   ///
   /// - AOS: only work Android 14+
